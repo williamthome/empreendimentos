@@ -56,7 +56,7 @@ iniciar(Empreendimentos)
     end.
 
 continuar() ->
-  io:get_line("Pressione enter para continuar...").
+  io:get_line("Pressione enter para voltar ao menu...").
 
 imprimir(Valor) ->
     io:format("~p~n", [Valor]).
