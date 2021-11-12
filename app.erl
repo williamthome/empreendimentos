@@ -31,10 +31,7 @@ iniciar(Empreendimentos)
         case Acao of
           {ok, {_acao, Resposta, EmpreendimentosDaAcao}}
             when is_list(EmpreendimentosDaAcao) ->
-              imprimir(">>>>>>>>>>>>>>>>>>"),
-              imprimir("Resultado da ação:"),
-              imprimir(Resposta),
-              imprimir("<<<<<<<<<<<<<<<<<<"),
+              imprimir_resposta(Resposta),
               iniciar(EmpreendimentosDaAcao);
           ?ERRO_OPCAO_NAO_ENCONTRADA ->
             imprimir(?ERRO_OPCAO_NAO_ENCONTRADA),
@@ -64,6 +61,12 @@ imprimir_menu() ->
 
 imprimir_opcoes() ->
   lists:foreach(fun imprimir/1, opcoes_com_id_e_nome_concatenados()).
+
+imprimir_resposta(Resposta) ->
+  imprimir(">>>>>>>>>>>>>>>>>>"),
+  imprimir("Resultado da ação:"),
+  imprimir(Resposta),
+  imprimir("<<<<<<<<<<<<<<<<<<").
 
 opcoes_com_id_e_nome_concatenados() ->
   lists:map(fun concatenar_id_e_nome_de_opcao/1, ?OPCOES).
