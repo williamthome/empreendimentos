@@ -22,21 +22,29 @@ iniciar() ->
 iniciar(Empreendimentos)
   when is_list(Empreendimentos) ->
     imprimir_menu(),
-    IdOpcao = pegar_id_de_opcao_do_usuario(),
-    Acao = case pegar_acao_da_opcao_por_id(IdOpcao) of
-      {ok, Fun} -> Fun(Empreendimentos);
-      ?ERRO_OPCAO_NAO_ENCONTRADA -> ?ERRO_OPCAO_NAO_ENCONTRADA
-    end,
-    case Acao of
-      {ok, {_acao, Resposta, EmpreendimentosDaAcao}}
-        when is_list(EmpreendimentosDaAcao) ->
-          imprimir(">>>>>>>>>>>>>>>>>>"),
-          imprimir("Resultado da ação:"),
-          imprimir(Resposta),
-          imprimir("<<<<<<<<<<<<<<<<<<"),
-          iniciar(EmpreendimentosDaAcao);
-      _ ->
-        imprimir(?ERRO_NO_SERVIDOR),
+    case pegar_id_de_opcao_do_usuario() of
+      {ok, IdOpcao} ->
+        Acao = case pegar_acao_da_opcao_por_id(IdOpcao) of
+          {ok, Fun} -> Fun(Empreendimentos);
+          ?ERRO_OPCAO_NAO_ENCONTRADA -> ?ERRO_OPCAO_NAO_ENCONTRADA
+        end,
+        case Acao of
+          {ok, {_acao, Resposta, EmpreendimentosDaAcao}}
+            when is_list(EmpreendimentosDaAcao) ->
+              imprimir(">>>>>>>>>>>>>>>>>>"),
+              imprimir("Resultado da ação:"),
+              imprimir(Resposta),
+              imprimir("<<<<<<<<<<<<<<<<<<"),
+              iniciar(EmpreendimentosDaAcao);
+          ?ERRO_OPCAO_NAO_ENCONTRADA ->
+            imprimir(?ERRO_OPCAO_NAO_ENCONTRADA),
+            iniciar(Empreendimentos);
+          _ ->
+            imprimir(?ERRO_NO_SERVIDOR),
+            iniciar(Empreendimentos)
+        end;
+      Erro ->
+        imprimir(Erro),
         iniciar(Empreendimentos)
     end.
 
@@ -69,7 +77,12 @@ perguntar_ao_usuario(Pergunta) ->
 
 pegar_id_de_opcao_do_usuario() ->
   Resposta = perguntar_ao_usuario(?PERGUNTA),
-  list_to_integer(Resposta).
+  try list_to_integer(Resposta) of
+    Id -> {ok, Id}
+  catch
+    error:badarg ->
+      {erro, opcao_deve_ser_um_inteiro}
+  end.
 
 pegar_acao_da_opcao_por_id(Id) ->
   case tentar_econtrar_opcao_por_id(Id, ?OPCOES) of
