@@ -4,12 +4,12 @@
 -define(SEPARADOR, "----------------------------------").
 -define(CABECALHO, "Menu de opções dos Empreendimentos").
 -define(OPCOES, [
-  [{id, 1}, {nome, "Listar"}, {acao, fun() -> ok end}],
-  [{id, 2}, {nome, "Adicionar"}, {acao, fun() -> ok end}],
-  [{id, 3}, {nome, "Buscar"}, {acao, fun() -> ok end}],
-  [{id, 4}, {nome, "Editar"}, {acao, fun() -> ok end}],
-  [{id, 5}, {nome, "Deletar"}, {acao, fun() -> ok end}],
-  [{id, 6}, {nome, "Sair"}, {acao, fun() -> exit(self(), {ok, saiu_com_sucesso}) end}]
+  [{id, 1}, {nome, "Listar"}, {acao, fun listar/0}],
+  [{id, 2}, {nome, "Adicionar"}, {acao, fun adicionar/0}],
+  [{id, 3}, {nome, "Buscar"}, {acao, fun buscar/0}],
+  [{id, 4}, {nome, "Editar"}, {acao, fun editar/0}],
+  [{id, 5}, {nome, "Deletar"}, {acao, fun deletar/0}],
+  [{id, 6}, {nome, "Sair"}, {acao, fun sair/0}]
 ]).
 -define(PERGUNTA, "O que deseja fazer?").
 -define(ERRO_ID_NAO_ENCONTRADO, {erro, id_nao_encontrado}).
@@ -68,3 +68,10 @@ tentar_econtrar_opcao_por_id(Id, Opcoes) ->
 
 opcao_possui_o_id(Id, [{id, Id}, _Nome, _Fun]) -> true;
 opcao_possui_o_id(_IdOpcao, [_Id, _Nome, _Fun]) -> false.
+
+listar() -> {ok, listar}.
+adicionar() -> {ok, adicionar}.
+buscar() -> {ok, buscar}.
+editar() -> {ok, editar}.
+deletar() -> {ok, deletar}.
+sair() -> exit(self(), {ok, saiu_com_sucesso}).
