@@ -27,11 +27,14 @@ iniciar(Empreendimentos)
     imprimir_menu(),
     case pegar_id_de_opcao_do_usuario() of
       {ok, IdOpcao} ->
-        Acao = case pegar_acao_da_opcao_por_id(IdOpcao) of
-          {ok, Fun} -> Fun(Empreendimentos);
-          ?ERRO_OPCAO_NAO_ENCONTRADA -> ?ERRO_OPCAO_NAO_ENCONTRADA
+        Resultado = case pegar_opcao_por_id(IdOpcao) of
+          {ok, [_Id, {nome, NomeDaOpcao}, {acao, Fun}]} ->
+            io:format("Executando ~s...~n", [NomeDaOpcao]),
+            Fun(Empreendimentos);
+          ?ERRO_OPCAO_NAO_ENCONTRADA ->
+            ?ERRO_OPCAO_NAO_ENCONTRADA
         end,
-        case Acao of
+        case Resultado of
           {ok, {Resposta, EmpreendimentosDaAcao}}
             when is_list(EmpreendimentosDaAcao) ->
               imprimir_resposta(Resposta),
@@ -101,9 +104,9 @@ pegar_id_de_opcao_do_usuario() ->
       {erro, opcao_deve_ser_um_inteiro}
   end.
 
-pegar_acao_da_opcao_por_id(Id) ->
+pegar_opcao_por_id(Id) ->
   case tentar_econtrar_opcao_por_id(Id, ?OPCOES) of
-    {value, [_Id, _Nome, {acao, Fun}]} -> {ok, Fun};
+    {value, Opcao} -> {ok, Opcao};
     false -> ?ERRO_OPCAO_NAO_ENCONTRADA
   end.
 
