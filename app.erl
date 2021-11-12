@@ -12,7 +12,8 @@
   [{id, 6}, {nome, "Sair"}, {acao, fun sair/1}]
 ]).
 -define(PERGUNTA, "O que deseja fazer?").
--define(ERRO_ID_NAO_ENCONTRADO, {erro, id_nao_encontrado}).
+-define(ERRO_OPCAO_NAO_ENCONTRADA, {erro, opcao_nao_encontrada}).
+-define(ERRO_NO_SERVIDOR, {erro, algo_inesperado_aconteceu}).
 
 iniciar() ->
   iniciar([]).
@@ -23,14 +24,14 @@ iniciar(Empreendimentos)
     IdOpcao = pegar_id_de_opcao_do_usuario(),
     Acao = case pegar_acao_da_opcao_por_id(IdOpcao) of
       {ok, Fun} -> Fun(Empreendimentos);
-      ?ERRO_ID_NAO_ENCONTRADO -> ?ERRO_ID_NAO_ENCONTRADO
+      ?ERRO_OPCAO_NAO_ENCONTRADA -> ?ERRO_OPCAO_NAO_ENCONTRADA
     end,
     case Acao of
       {ok, {_acao, EmpreendimentosDaAcao}}
         when is_list(EmpreendimentosDaAcao) ->
           iniciar(EmpreendimentosDaAcao);
       _ ->
-        imprimir({erro, algo_inesperado_aconteceu}),
+        imprimir(?ERRO_NO_SERVIDOR),
         iniciar(Empreendimentos)
     end.
 
@@ -69,7 +70,7 @@ pegar_acao_da_opcao_por_id(Id)
   when is_integer(Id) ->
     case tentar_econtrar_opcao_por_id(Id, ?OPCOES) of
       {value, [_Id, _Nome, {acao, Fun}]} -> {ok, Fun};
-      false -> ?ERRO_ID_NAO_ENCONTRADO
+      false -> ?ERRO_OPCAO_NAO_ENCONTRADA
     end.
 
 tentar_econtrar_opcao_por_id(Id, Opcoes) ->
