@@ -14,6 +14,7 @@
 -define(PERGUNTA, "O que deseja fazer?").
 -define(ERRO_OPCAO_NAO_ENCONTRADA, {erro, opcao_nao_encontrada}).
 -define(ERRO_NO_SERVIDOR, {erro, algo_inesperado_aconteceu}).
+-define(ERRO_EMPREENDIMENTO_NAO_ENCONTRADO, {erro, empreendimento_nao_encontrado}).
 
 iniciar() ->
   iniciar([]).
@@ -27,8 +28,12 @@ iniciar(Empreendimentos)
       ?ERRO_OPCAO_NAO_ENCONTRADA -> ?ERRO_OPCAO_NAO_ENCONTRADA
     end,
     case Acao of
-      {ok, {_acao, EmpreendimentosDaAcao}}
+      {ok, {_acao, Resposta, EmpreendimentosDaAcao}}
         when is_list(EmpreendimentosDaAcao) ->
+          imprimir(">>>>>>>>>>>>>>>>>>"),
+          imprimir("Resultado da ação:"),
+          imprimir(Resposta),
+          imprimir("<<<<<<<<<<<<<<<<<<"),
           iniciar(EmpreendimentosDaAcao);
       _ ->
         imprimir(?ERRO_NO_SERVIDOR),
@@ -66,36 +71,101 @@ pegar_id_de_opcao_do_usuario() ->
   Resposta = perguntar_ao_usuario(?PERGUNTA),
   list_to_integer(Resposta).
 
-pegar_acao_da_opcao_por_id(Id)
-  when is_integer(Id) ->
-    case tentar_econtrar_opcao_por_id(Id, ?OPCOES) of
-      {value, [_Id, _Nome, {acao, Fun}]} -> {ok, Fun};
-      false -> ?ERRO_OPCAO_NAO_ENCONTRADA
-    end.
+pegar_acao_da_opcao_por_id(Id) ->
+  case tentar_econtrar_opcao_por_id(Id, ?OPCOES) of
+    {value, [_Id, _Nome, {acao, Fun}]} -> {ok, Fun};
+    false -> ?ERRO_OPCAO_NAO_ENCONTRADA
+  end.
 
-tentar_econtrar_opcao_por_id(Id, Opcoes) ->
-  lists:search(fun(Opcao) -> opcao_possui_o_id(Id, Opcao) end, Opcoes).
+tentar_econtrar_opcao_por_id(Id, Opcoes)
+  when is_integer(Id) ->
+    lists:search(fun(Opcao) -> opcao_possui_o_id(Id, Opcao) end, Opcoes).
 
 opcao_possui_o_id(Id, [{id, Id}, _Nome, _Fun]) -> true;
 opcao_possui_o_id(_IdOpcao, [_Id, _Nome, _Fun]) -> false.
 
 listar(Empreendimentos)
   when is_list(Empreendimentos) ->
-    {ok, {listar, Empreendimentos}}.
+    Resposta = case Empreendimentos of
+      [] -> nenhum_empreendimento_cadastrado;
+      _ -> Empreendimentos
+    end,
+    {ok, {listar, Resposta, Empreendimentos}}.
 
 adicionar(Empreendimentos)
   when is_list(Empreendimentos) ->
     Empreendimento = perguntar_ao_usuario("Informe o nome do empreendimento"),
-    {ok, {adicionar, [Empreendimento | Empreendimentos]}}.
+    Resposta = Empreendimento,
+    {ok, {adicionar, Resposta, [Empreendimento | Empreendimentos]}}.
 
-buscar(Empreendimentos) ->
-  {ok, {buscar, Empreendimentos}}.
+buscar(Empreendimentos)
+  when is_list(Empreendimentos) ->
+    Nome = perguntar_ao_usuario(
+      "Informe o nome do empreendimento que deseja buscar"
+    ),
+    Resposta = pegar_empreendimento_por_nome(Empreendimentos, Nome),
+    {ok, {buscar, Resposta, Empreendimentos}}.
 
-editar(Empreendimentos) ->
-  {ok, {editar, Empreendimentos}}.
+editar(Empreendimentos)
+  when is_list(Empreendimentos) ->
+    Nome = perguntar_ao_usuario(
+      "Informe o nome do empreendimento que deseja editar"
+    ),
+    case pegar_empreendimento_por_nome(Empreendimentos, Nome) of
+      {ok, _Empreendimento} ->
+        NovoNome = perguntar_ao_usuario("Informe o novo nome do empreendimento"),
+        EmpreendimentosFiltrados = deletar_empreendimento_por_nome(
+          Empreendimentos,
+          Nome
+        ),
+        Empreendimento = NovoNome,
+        EmpreendimentosAtualizados = [Empreendimento | EmpreendimentosFiltrados],
+        Resposta = Empreendimento,
+        {ok, {editar, Resposta, EmpreendimentosAtualizados}};
+      ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO ->
+        Resposta = ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO,
+        {ok, {editar, Resposta, Empreendimentos}}
+    end.
 
-deletar(Empreendimentos) ->
-  {ok, {deletar, Empreendimentos}}.
+deletar(Empreendimentos)
+  when is_list(Empreendimentos) ->
+     Nome = perguntar_ao_usuario(
+      "Informe o nome do empreendimento que deseja deletar"
+    ),
+    case pegar_empreendimento_por_nome(Empreendimentos, Nome) of
+      {ok, _Empreendimento} ->
+        EmpreendimentosAtualizados = deletar_empreendimento_por_nome(
+          Empreendimentos,
+          Nome
+        ),
+        Resposta = EmpreendimentosAtualizados,
+        {ok, {deletar, Resposta, EmpreendimentosAtualizados}};
+      ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO ->
+        Resposta = ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO,
+        {ok, {deletar, Resposta, Empreendimentos}}
+    end.
 
-sair(Empreendimentos) ->
-  exit(self(), {ok, {sair, Empreendimentos}}).
+sair(Empreendimentos)
+  when is_list(Empreendimentos) ->
+    Resposta = saiu_com_sucesso,
+    exit(self(), {ok, {sair, Resposta, Empreendimentos}}).
+
+pegar_empreendimento_por_nome(Empreendimentos, Nome) ->
+  case tentar_encontrar_empreendimento_por_nome(Empreendimentos, Nome) of
+    {value, Empreendimento} -> {ok, Empreendimento};
+    false -> ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO
+  end.
+
+tentar_encontrar_empreendimento_por_nome(Empreendimentos, Nome)
+  when is_list(Empreendimentos) ->
+    lists:search(
+      fun(NomeDoEmpreendimento) -> NomeDoEmpreendimento == Nome end,
+      Empreendimentos
+    ).
+
+deletar_empreendimento_por_nome(Empreendimentos, Nome)
+  when is_list(Empreendimentos) ->
+    lists:filter(
+      fun(NomeDoEmpreendimento) -> NomeDoEmpreendimento == Nome end,
+      Empreendimentos
+    ).
