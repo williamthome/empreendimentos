@@ -4,12 +4,12 @@
 -define(SEPARADOR, "----------------------------------").
 -define(CABECALHO, "Menu de opções dos Empreendimentos").
 -define(OPCOES, [
-  [{id, 1}, {nome, "Listar"}, {acao, fun listar/0}],
-  [{id, 2}, {nome, "Adicionar"}, {acao, fun adicionar/0}],
-  [{id, 3}, {nome, "Buscar"}, {acao, fun buscar/0}],
-  [{id, 4}, {nome, "Editar"}, {acao, fun editar/0}],
-  [{id, 5}, {nome, "Deletar"}, {acao, fun deletar/0}],
-  [{id, 6}, {nome, "Sair"}, {acao, fun sair/0}]
+  [{id, 1}, {nome, "Listar"}, {acao, fun listar/1}],
+  [{id, 2}, {nome, "Adicionar"}, {acao, fun adicionar/1}],
+  [{id, 3}, {nome, "Buscar"}, {acao, fun buscar/1}],
+  [{id, 4}, {nome, "Editar"}, {acao, fun editar/1}],
+  [{id, 5}, {nome, "Deletar"}, {acao, fun deletar/1}],
+  [{id, 6}, {nome, "Sair"}, {acao, fun sair/1}]
 ]).
 -define(PERGUNTA, "O que deseja fazer?").
 -define(ERRO_ID_NAO_ENCONTRADO, {erro, id_nao_encontrado}).
@@ -20,13 +20,19 @@ iniciar() ->
 iniciar(Empreendimentos)
   when is_list(Empreendimentos) ->
     imprimir_menu(),
-    Resposta = pegar_resposta_do_usuario(),
-    Resultado = case pegar_acao_da_opcao_por_id(Resposta) of
-      {ok, Fun} -> Fun();
+    IdOpcao = pegar_id_de_opcao_do_usuario(),
+    Acao = case pegar_acao_da_opcao_por_id(IdOpcao) of
+      {ok, Fun} -> Fun(Empreendimentos);
       ?ERRO_ID_NAO_ENCONTRADO -> ?ERRO_ID_NAO_ENCONTRADO
     end,
-    io:format("Resultado: ~p~n", [Resultado]),
-    iniciar(Empreendimentos).
+    case Acao of
+      {ok, {_acao, EmpreendimentosDaAcao}}
+        when is_list(EmpreendimentosDaAcao) ->
+          iniciar(EmpreendimentosDaAcao);
+      _ ->
+        imprimir({erro, algo_inesperado_aconteceu}),
+        iniciar(Empreendimentos)
+    end.
 
 imprimir(Valor)
   when is_list(Valor) ->
@@ -51,9 +57,12 @@ opcoes_com_id_e_nome_concatenados() ->
 concatenar_id_e_nome_de_opcao([{id, Id}, {nome, Nome}, _Fun]) ->
   lists:concat([Id, ": ", Nome]).
 
-pegar_resposta_do_usuario() ->
-  Pergunta = io_lib:format("~s ", [?PERGUNTA]),
-  Resposta = string:trim(io:get_line(Pergunta)),
+perguntar_ao_usuario(Pergunta) ->
+  PerguntaFormatada = io_lib:format("~s ", [Pergunta]),
+  string:trim(io:get_line(PerguntaFormatada)).
+
+pegar_id_de_opcao_do_usuario() ->
+  Resposta = perguntar_ao_usuario(?PERGUNTA),
   list_to_integer(Resposta).
 
 pegar_acao_da_opcao_por_id(Id)
@@ -69,9 +78,23 @@ tentar_econtrar_opcao_por_id(Id, Opcoes) ->
 opcao_possui_o_id(Id, [{id, Id}, _Nome, _Fun]) -> true;
 opcao_possui_o_id(_IdOpcao, [_Id, _Nome, _Fun]) -> false.
 
-listar() -> {ok, listar}.
-adicionar() -> {ok, adicionar}.
-buscar() -> {ok, buscar}.
-editar() -> {ok, editar}.
-deletar() -> {ok, deletar}.
-sair() -> exit(self(), {ok, saiu_com_sucesso}).
+listar(Empreendimentos)
+  when is_list(Empreendimentos) ->
+    {ok, {listar, Empreendimentos}}.
+
+adicionar(Empreendimentos)
+  when is_list(Empreendimentos) ->
+    Empreendimento = perguntar_ao_usuario("Informe o nome do empreendimento"),
+    {ok, {adicionar, [Empreendimento | Empreendimentos]}}.
+
+buscar(Empreendimentos) ->
+  {ok, {buscar, Empreendimentos}}.
+
+editar(Empreendimentos) ->
+  {ok, {editar, Empreendimentos}}.
+
+deletar(Empreendimentos) ->
+  {ok, {deletar, Empreendimentos}}.
+
+sair(Empreendimentos) ->
+  exit(self(), {ok, {sair, Empreendimentos}}).
