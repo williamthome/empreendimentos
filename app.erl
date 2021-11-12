@@ -14,10 +14,14 @@
 -define(PERGUNTA, "O que deseja fazer?").
 
 iniciar() ->
-  imprimir_menu_de_opcoes(),
-  Resposta = pegar_resposta_do_usuario(),
-  io:format("Resposta: ~s~n", [Resposta]),
-  iniciar().
+  iniciar([]).
+
+iniciar(Empreendimentos)
+  when is_list(Empreendimentos) ->
+    imprimir_menu_de_opcoes(),
+    Resposta = pegar_resposta_do_usuario(),
+    io:format("Resposta: ~s~n", [Resposta]),
+    iniciar(Empreendimentos).
 
 imprimir_menu_de_opcoes() ->
   io:format("~s~n", [?SEPARADOR]),
