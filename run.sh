@@ -3,6 +3,6 @@
 set -e
 
 erl -make
-erl -eval "io:format(\"\")" -eval "app:iniciar()"
+erl
 
 exit 0
