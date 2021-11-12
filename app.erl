@@ -4,41 +4,67 @@
 -define(SEPARADOR, "----------------------------------").
 -define(CABECALHO, "Menu de opções dos Empreendimentos").
 -define(OPCOES, [
-  {{id, 1}, {nome, "Listar"}, {acao, fun() -> ok end}},
-  {{id, 2}, {nome, "Adicionar"}, {acao, fun() -> ok end}},
-  {{id, 3}, {nome, "Buscar"}, {acao, fun() -> ok end}},
-  {{id, 4}, {nome, "Editar"}, {acao, fun() -> ok end}},
-  {{id, 5}, {nome, "Deletar"}, {acao, fun() -> ok end}},
-  {{id, 6}, {nome, "Sair"}, {acao, fun() -> exit(whereis(?SERVIDOR), ok) end}}
+  [{id, 1}, {nome, "Listar"}, {acao, fun() -> ok end}],
+  [{id, 2}, {nome, "Adicionar"}, {acao, fun() -> ok end}],
+  [{id, 3}, {nome, "Buscar"}, {acao, fun() -> ok end}],
+  [{id, 4}, {nome, "Editar"}, {acao, fun() -> ok end}],
+  [{id, 5}, {nome, "Deletar"}, {acao, fun() -> ok end}],
+  [{id, 6}, {nome, "Sair"}, {acao, fun() -> exit(self(), {ok, saiu_com_sucesso}) end}]
 ]).
 -define(PERGUNTA, "O que deseja fazer?").
+-define(ERRO_ID_NAO_ENCONTRADO, {erro, id_nao_encontrado}).
 
 iniciar() ->
   iniciar([]).
 
 iniciar(Empreendimentos)
   when is_list(Empreendimentos) ->
-    imprimir_menu_de_opcoes(),
+    imprimir_menu(),
     Resposta = pegar_resposta_do_usuario(),
-    io:format("Resposta: ~s~n", [Resposta]),
+    Resultado = case pegar_acao_da_opcao_por_id(Resposta) of
+      {ok, Fun} -> Fun();
+      ?ERRO_ID_NAO_ENCONTRADO -> ?ERRO_ID_NAO_ENCONTRADO
+    end,
+    io:format("Resultado: ~p~n", [Resultado]),
     iniciar(Empreendimentos).
 
-imprimir_menu_de_opcoes() ->
-  io:format("~s~n", [?SEPARADOR]),
-  io:format("~s~n", [?CABECALHO]),
-  io:format("~s~n", [?SEPARADOR]),
-  lists:foreach(fun imprimir_item_do_menu/1, pegar_menu_de_opcoes()),
-  io:format("~s~n", [?SEPARADOR]).
+imprimir(Valor)
+  when is_list(Valor) ->
+    io:format("~s~n", [Valor]);
 
-imprimir_item_do_menu(Item) ->
-  io:format("~s~n", [Item]).
+imprimir(Valor) ->
+    io:format("~p~n", [Valor]).
 
-pegar_menu_de_opcoes() ->
-  lists:map(fun opcao_para_item_de_menu/1, ?OPCOES).
+imprimir_menu() ->
+  imprimir(?SEPARADOR),
+  imprimir(?CABECALHO),
+  imprimir(?SEPARADOR),
+  imprimir_opcoes(),
+  imprimir(?SEPARADOR).
 
-opcao_para_item_de_menu({{id, Id}, {nome, Nome}, _Fun}) ->
+imprimir_opcoes() ->
+  lists:foreach(fun imprimir/1, opcoes_com_id_e_nome_concatenados()).
+
+opcoes_com_id_e_nome_concatenados() ->
+  lists:map(fun concatenar_id_e_nome_de_opcao/1, ?OPCOES).
+
+concatenar_id_e_nome_de_opcao([{id, Id}, {nome, Nome}, _Fun]) ->
   lists:concat([Id, ": ", Nome]).
 
 pegar_resposta_do_usuario() ->
   Pergunta = io_lib:format("~s ", [?PERGUNTA]),
-  io:get_line(Pergunta).
+  Resposta = string:trim(io:get_line(Pergunta)),
+  list_to_integer(Resposta).
+
+pegar_acao_da_opcao_por_id(Id)
+  when is_integer(Id) ->
+    case tentar_econtrar_opcao_por_id(Id, ?OPCOES) of
+      {value, [_Id, _Nome, {acao, Fun}]} -> {ok, Fun};
+      false -> ?ERRO_ID_NAO_ENCONTRADO
+    end.
+
+tentar_econtrar_opcao_por_id(Id, Opcoes) ->
+  lists:search(fun(Opcao) -> opcao_possui_o_id(Id, Opcao) end, Opcoes).
+
+opcao_possui_o_id(Id, [{id, Id}, _Nome, _Fun]) -> true;
+opcao_possui_o_id(_IdOpcao, [_Id, _Nome, _Fun]) -> false.
