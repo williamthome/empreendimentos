@@ -15,6 +15,9 @@
 -define(ERRO_OPCAO_NAO_ENCONTRADA, {erro, opcao_nao_encontrada}).
 -define(ERRO_NO_SERVIDOR, {erro, algo_inesperado_aconteceu}).
 -define(ERRO_EMPREENDIMENTO_NAO_ENCONTRADO, {erro, empreendimento_nao_encontrado}).
+-record(empreendimento, {
+  nome :: nonempty_string()
+}).
 
 iniciar() ->
   iniciar([]).
@@ -29,44 +32,55 @@ iniciar(Empreendimentos)
           ?ERRO_OPCAO_NAO_ENCONTRADA -> ?ERRO_OPCAO_NAO_ENCONTRADA
         end,
         case Acao of
-          {ok, {_acao, Resposta, EmpreendimentosDaAcao}}
+          {ok, {Resposta, EmpreendimentosDaAcao}}
             when is_list(EmpreendimentosDaAcao) ->
               imprimir_resposta(Resposta),
+              continuar(),
               iniciar(EmpreendimentosDaAcao);
           ?ERRO_OPCAO_NAO_ENCONTRADA ->
             imprimir(?ERRO_OPCAO_NAO_ENCONTRADA),
+            continuar(),
             iniciar(Empreendimentos);
           _ ->
             imprimir(?ERRO_NO_SERVIDOR),
+            continuar(),
             iniciar(Empreendimentos)
         end;
       Erro ->
         imprimir(Erro),
+        continuar(),
         iniciar(Empreendimentos)
     end.
 
-imprimir(Valor)
-  when is_list(Valor) ->
-    io:format("~s~n", [Valor]);
+continuar() ->
+  io:get_line("Pressione enter para continuar...").
 
 imprimir(Valor) ->
     io:format("~p~n", [Valor]).
 
+imprimir_string(Valor)
+  when is_list(Valor) ->
+    io:format("~s~n", [Valor]).
+
+imprimir_quebra() ->
+    io:format("~n").
+
 imprimir_menu() ->
-  imprimir(?SEPARADOR),
-  imprimir(?CABECALHO),
-  imprimir(?SEPARADOR),
+  imprimir_string(?SEPARADOR),
+  imprimir_string(?CABECALHO),
+  imprimir_string(?SEPARADOR),
   imprimir_opcoes(),
-  imprimir(?SEPARADOR).
+  imprimir_string(?SEPARADOR).
 
 imprimir_opcoes() ->
-  lists:foreach(fun imprimir/1, opcoes_com_id_e_nome_concatenados()).
+  lists:foreach(fun imprimir_string/1, opcoes_com_id_e_nome_concatenados()).
 
 imprimir_resposta(Resposta) ->
-  imprimir(">>>>>>>>>>>>>>>>>>"),
-  imprimir("Resultado da ação:"),
+  imprimir_string(?SEPARADOR),
+  imprimir_string("Resultado:"),
+  imprimir_quebra(),
   imprimir(Resposta),
-  imprimir("<<<<<<<<<<<<<<<<<<").
+  imprimir_string(?SEPARADOR).
 
 opcoes_com_id_e_nome_concatenados() ->
   lists:map(fun concatenar_id_e_nome_de_opcao/1, ?OPCOES).
@@ -106,13 +120,14 @@ listar(Empreendimentos)
       [] -> nenhum_empreendimento_cadastrado;
       _ -> Empreendimentos
     end,
-    {ok, {listar, Resposta, Empreendimentos}}.
+    {ok, {{listar, Resposta}, Empreendimentos}}.
 
 adicionar(Empreendimentos)
   when is_list(Empreendimentos) ->
-    Empreendimento = perguntar_ao_usuario("Informe o nome do empreendimento"),
+    Nome = perguntar_ao_usuario("Informe o nome do empreendimento"),
+    Empreendimento = #empreendimento{nome = Nome},
     Resposta = Empreendimento,
-    {ok, {adicionar, Resposta, [Empreendimento | Empreendimentos]}}.
+    {ok, {{adicionar, Resposta}, [Empreendimento | Empreendimentos]}}.
 
 buscar(Empreendimentos)
   when is_list(Empreendimentos) ->
@@ -120,7 +135,7 @@ buscar(Empreendimentos)
       "Informe o nome do empreendimento que deseja buscar"
     ),
     Resposta = pegar_empreendimento_por_nome(Empreendimentos, Nome),
-    {ok, {buscar, Resposta, Empreendimentos}}.
+    {ok, {{buscar, Resposta}, Empreendimentos}}.
 
 editar(Empreendimentos)
   when is_list(Empreendimentos) ->
@@ -134,13 +149,13 @@ editar(Empreendimentos)
           Empreendimentos,
           Nome
         ),
-        Empreendimento = NovoNome,
+        Empreendimento = #empreendimento{nome = NovoNome},
         EmpreendimentosAtualizados = [Empreendimento | EmpreendimentosFiltrados],
         Resposta = Empreendimento,
-        {ok, {editar, Resposta, EmpreendimentosAtualizados}};
+        {ok, {{editar, Resposta}, EmpreendimentosAtualizados}};
       ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO ->
         Resposta = ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO,
-        {ok, {editar, Resposta, Empreendimentos}}
+        {ok, {{editar, Resposta}, Empreendimentos}}
     end.
 
 deletar(Empreendimentos)
@@ -155,16 +170,16 @@ deletar(Empreendimentos)
           Nome
         ),
         Resposta = EmpreendimentosAtualizados,
-        {ok, {deletar, Resposta, EmpreendimentosAtualizados}};
+        {ok, {{deletar, Resposta}, EmpreendimentosAtualizados}};
       ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO ->
         Resposta = ?ERRO_EMPREENDIMENTO_NAO_ENCONTRADO,
-        {ok, {deletar, Resposta, Empreendimentos}}
+        {ok, {{deletar, Resposta}, Empreendimentos}}
     end.
 
 sair(Empreendimentos)
   when is_list(Empreendimentos) ->
     Resposta = saiu_com_sucesso,
-    exit(self(), {ok, {sair, Resposta, Empreendimentos}}).
+    exit(self(), {ok, {{sair, Resposta}, Empreendimentos}}).
 
 pegar_empreendimento_por_nome(Empreendimentos, Nome) ->
   case tentar_encontrar_empreendimento_por_nome(Empreendimentos, Nome) of
@@ -175,13 +190,15 @@ pegar_empreendimento_por_nome(Empreendimentos, Nome) ->
 tentar_encontrar_empreendimento_por_nome(Empreendimentos, Nome)
   when is_list(Empreendimentos) ->
     lists:search(
-      fun(NomeDoEmpreendimento) -> NomeDoEmpreendimento == Nome end,
+      fun(#empreendimento{nome = NomeDoEmpreendimento}) ->
+        NomeDoEmpreendimento == Nome end,
       Empreendimentos
     ).
 
 deletar_empreendimento_por_nome(Empreendimentos, Nome)
   when is_list(Empreendimentos) ->
     lists:filter(
-      fun(NomeDoEmpreendimento) -> NomeDoEmpreendimento == Nome end,
+      fun(#empreendimento{nome = NomeDoEmpreendimento}) ->
+        NomeDoEmpreendimento =/= Nome end,
       Empreendimentos
     ).
