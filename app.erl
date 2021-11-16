@@ -38,24 +38,24 @@ iniciar(Empreendimentos)
           {ok, {Resposta, EmpreendimentosDaAcao}}
             when is_list(EmpreendimentosDaAcao) ->
               imprimir_resposta(Resposta),
-              continuar(),
+              presisonar_enter_para_continuar(),
               iniciar(EmpreendimentosDaAcao);
           ?ERRO_OPCAO_NAO_ENCONTRADA ->
             imprimir(?ERRO_OPCAO_NAO_ENCONTRADA),
-            continuar(),
+            presisonar_enter_para_continuar(),
             iniciar(Empreendimentos);
           _ ->
             imprimir(?ERRO_NO_SERVIDOR),
-            continuar(),
+            presisonar_enter_para_continuar(),
             iniciar(Empreendimentos)
         end;
       Erro ->
         imprimir(Erro),
-        continuar(),
+        presisonar_enter_para_continuar(),
         iniciar(Empreendimentos)
     end.
 
-continuar() ->
+presisonar_enter_para_continuar() ->
   io:get_line("Pressione enter para voltar ao menu...").
 
 imprimir(Valor) ->
